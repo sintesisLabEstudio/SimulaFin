@@ -1,0 +1,835 @@
+FECHA: 08/10/2026 13:55:00
+PROYECTO: SimulaFin - Codigo Base
+
+TABLA DE ARCHIVOS:
+| Nombre | Extension | Ruta | Utilidad |
+| LoginActivity | .kt | app/src/main/java/com/simulafin/ | Pantalla inicial de autenticación |
+| MainActivity | .kt | app/src/main/java/com/simulafin/ | Menú principal de navegación |
+| MenuSimActivity | .kt | app/src/main/java/com/simulafin/ | Submenú de modos de simulación |
+| InputSimCuentaActivity | .kt | app/src/main/java/com/simulafin/ | Paso 1 de simulación por etapas |
+| InputSimItemsActivity | .kt | app/src/main/java/com/simulafin/ | Paso 2 de simulación por etapas |
+| OutSimResumenActivity | .kt | app/src/main/java/com/simulafin/ | Paso 3 de simulación (Resumen) |
+| SimulacionActivity | .kt | app/src/main/java/com/simulafin/ | Vista integradora 60% / 40% |
+| CuentasActivity | .kt | app/src/main/java/com/simulafin/ | Gestión CRUD de cuentas |
+| ItemsActivity | .kt | app/src/main/java/com/simulafin/ | Catálogo de ítems de egreso |
+| RegistroActivity | .kt | app/src/main/java/com/simulafin/ | Formulario de registro |
+| ConsultaSimulacionesActivity | .kt | app/src/main/java/com/simulafin/ | Consulta de historial guardado |
+| RespaldoActivity | .kt | app/src/main/java/com/simulafin/ | Exportación e importación BD |
+| SimulacionInputFragment | .kt | app/src/main/java/com/simulafin/fragments/ | Captura de datos en fragmento |
+| SimulacionOutputFragment | .kt | app/src/main/java/com/simulafin/fragments/ | Muestra de resultados en fragmento |
+| OnSimulacionDatosListener | .kt | app/src/main/java/com/simulafin/interfaces/ | Interfaz de comunicación fragment |
+| OnItemClickListener | .kt | app/src/main/java/com/simulafin/interfaces/ | Interfaz de selección en listas |
+| BaseDatosHelper | .kt | app/src/main/java/com/simulafin/clases/ | Administrador SQLite local |
+| GestorRespaldo | .kt | app/src/main/java/com/simulafin/clases/ | Módulo de copias de seguridad |
+| Usuario | .kt | app/src/main/java/com/simulafin/clases/ | Entidad modelo Usuario |
+| Cuenta | .kt | app/src/main/java/com/simulafin/clases/ | Entidad modelo Cuenta |
+| Item | .kt | app/src/main/java/com/simulafin/clases/ | Entidad modelo Ítem |
+| Simulacion | .kt | app/src/main/java/com/simulafin/clases/ | Entidad cabecera Simulación |
+| DetalleSimulacion | .kt | app/src/main/java/com/simulafin/clases/ | Entidad renglón Simulación |
+| AndroidManifest | .xml | app/src/main/ | Registro oficial de la app |
+| activity_login | .xml | app/src/main/res/layout/ | UI de Login |
+| activity_main | .xml | app/src/main/res/layout/ | UI de Menú Principal |
+| activity_menu_sim | .xml | app/src/main/res/layout/ | UI de Menú de Simulación |
+| activity_input_sim_cuenta | .xml | app/src/main/res/layout/ | UI de Paso 1 Simulación |
+| activity_input_sim_items | .xml | app/src/main/res/layout/ | UI de Paso 2 Simulación |
+| activity_out_sim_resumen | .xml | app/src/main/res/layout/ | UI de Paso 3 Resumen |
+| activity_simulacion | .xml | app/src/main/res/layout/ | UI Integradora 60/40 |
+
+
+FLUJO COMPLETO DE APLICACION:
+    1. INICIO Y AUTENTICACION
+        El flujo arranca oficialmente en LoginActivity (configurada como LAUNCHER en AndroidManifest.xml).
+        En onCreate(), llama al método generaBaseDatos() de BaseDatosHelper, que comprueba si existe 'simulafin.db' y crea las 5 tablas si no existen.
+        El usuario ingresa su usuario y contraseña en etUsuario y etPassword. Al presionar btnIngresar, se valida el acceso y se redirige con Intent a MainActivity llamando a finish().
+
+    2. MENU PRINCIPAL (MAIN ACTIVITY)
+        MainActivity presenta 5 opciones centrales:
+        - btnSimulaciones ─> Abre MenuSimActivity (Submenú de simulaciones)
+        - btnCuentas ─> Abre CuentasActivity (Gestión de cuentas)
+        - btnItems ─> Abre ItemsActivity (Gestión de ítems)
+        - btnRegistro ─> Abre RegistroActivity (Registro de usuarios)
+        - btnRespaldo ─> Abre RespaldoActivity (Copias de seguridad)
+
+    3. SUBMENU DE SIMULACIONES (MENU SIM ACTIVITY)
+        MenuSimActivity permite elegir entre dos modalidades de simulación:
+        - btnPasoApaso ─> Abre InputSimCuentaActivity (Inicio de flujo por etapas)
+        - btnSintesis ─> Abre SimulacionActivity (Pantalla dividida 60% arriba y 40% abajo con Fragments)
+        - btnMenuPrincipal ─> Regresa a MainActivity
+
+    4. FLUJO DE SIMULACION PASO A PASO
+        - InputSimCuentaActivity (Paso 1): Selecciona cuenta y monto. El botón btnOkCuenta avanza a InputSimItemsActivity.
+        - InputSimItemsActivity (Paso 2): Elige ítems y ajusta valores. El botón btnOkItems avanza a OutSimResumenActivity.
+        - OutSimResumenActivity (Paso 3): Presenta el resumen completo de la simulación. Contiene los botones:
+          * btnItems ("Volver a Ítems") ─> Llama a InputSimItemsActivity
+          * btnSim ("Volver a Simulación Cuenta") ─> Llama a InputSimCuentaActivity
+          * btnMenu ("Volver a Menú") ─> Llama a MenuSimActivity
+
+    5. MANTENIMIENTO Y RESPALDO
+        CuentasActivity e ItemsActivity gestionan los registros en las tablas 'Cuenta' e 'Item'.
+        RegistroActivity contiene los botones btnResapaldar y btnRecuperar que navegan hacia RespaldoActivity.
+        RespaldoActivity invoca las funciones de GestorRespaldo para copiar o importar la base local 'simulafin.db'.
+
+
+DETALLE DE ARCHIVOS PRINCIPALES:
+
+    ARCHIVO: LoginActivity.kt
+        DETALLE: Pantalla de inicio de sesión.
+        DESCRIPCION: Punto de entrada oficial de la app. Comprueba la existencia de la BD y autentica credenciales.
+        RELACIONES: Llama a BaseDatosHelper.generaBaseDatos() en onCreate y abre MainActivity al hacer clic en btnIngresar.
+        PANTALLA:
+            +------------------------------------+
+            |           Iniciar Sesión           |
+            |                                    |
+            |  [ EditText: etUsuario ]           |
+            |  [ EditText: etPassword ]          |
+            |  [ Button: btnIngresar ]            |
+            |                                    |
+            +------------------------------------+
+        CODIGO COMPLETO:
+package com.simulafin
+
+import android.content.Intent
+import android.os.Bundle
+import android.widget.Button
+import android.widget.EditText
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import com.simulafin.clases.BaseDatosHelper
+
+class LoginActivity : AppCompatActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_login)
+
+        // Verificar e inicializar la base de datos al arrancar la app
+        val dbHelper = BaseDatosHelper(this)
+        dbHelper.generaBaseDatos()
+
+        val etUsuario = findViewById<EditText>(R.id.etUsuario)
+        val etPassword = findViewById<EditText>(R.id.etPassword)
+        val btnIngresar = findViewById<Button>(R.id.btnIngresar)
+
+        btnIngresar.setOnClickListener {
+            val usuario = etUsuario.text.toString()
+            val password = etPassword.text.toString()
+
+            if (usuario.isNotEmpty() && password.isNotEmpty()) {
+                Toast.makeText(this, "Bienvenido $usuario", Toast.LENGTH_SHORT).show()
+
+                // Navegar al menú principal (MainActivity)
+                val intentMain = Intent(this, MainActivity::class.java)
+                startActivity(intentMain)
+                finish() // Cierra LoginActivity para que no quede en el historial de navegación
+            } else {
+                Toast.makeText(this, "Por favor ingrese usuario y contraseña", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+}
+
+
+    ARCHIVO: MainActivity.kt
+        DETALLE: Menú principal de la app.
+        DESCRIPCION: Presenta los accesos a los distintos módulos mediante 5 botones.
+        RELACIONES: Conecta con MenuSimActivity, CuentasActivity, ItemsActivity, RegistroActivity y RespaldoActivity.
+        PANTALLA:
+            +------------------------------------+
+            |      SimulaFin - Menú Principal    |
+            |                                    |
+            |  [ Button: btnSimulaciones ]       |
+            |  [ Button: btnCuentas ]            |
+            |  [ Button: btnItems ]              |
+            |  [ Button: btnRegistro ]           |
+            |  [ Button: btnRespaldo ]           |
+            +------------------------------------+
+        CODIGO COMPLETO:
+package com.simulafin
+
+import android.content.Intent
+import android.os.Bundle
+import android.widget.Button
+import androidx.appcompat.app.AppCompatActivity
+
+class MainActivity : AppCompatActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        val btnSimulaciones = findViewById<Button>(R.id.btnSimulaciones)
+        val btnCuentas = findViewById<Button>(R.id.btnCuentas)
+        val btnItems = findViewById<Button>(R.id.btnItems)
+        val btnRegistro = findViewById<Button>(R.id.btnRegistro)
+        val btnRespaldo = findViewById<Button>(R.id.btnRespaldo)
+
+        btnSimulaciones.setOnClickListener {
+            val intent = Intent(this, MenuSimActivity::class.java)
+            startActivity(intent)
+        }
+
+        btnCuentas.setOnClickListener {
+            val intent = Intent(this, CuentasActivity::class.java)
+            startActivity(intent)
+        }
+
+        btnItems.setOnClickListener {
+            val intent = Intent(this, ItemsActivity::class.java)
+            startActivity(intent)
+        }
+
+        btnRegistro.setOnClickListener {
+            val intent = Intent(this, RegistroActivity::class.java)
+            startActivity(intent)
+        }
+
+        btnRespaldo.setOnClickListener {
+            val intent = Intent(this, RespaldoActivity::class.java)
+            startActivity(intent)
+        }
+    }
+}
+
+
+    ARCHIVO: MenuSimActivity.kt
+        DETALLE: Submenú de modos de simulación.
+        DESCRIPCION: Opciones para iniciar simulación paso a paso o síntesis integradora.
+        RELACIONES: Conecta con InputSimCuentaActivity, SimulacionActivity y MainActivity.
+        PANTALLA:
+            +------------------------------------+
+            |        Menú de Simulación          |
+            |                                    |
+            |  [ Button: btnPasoApaso ]          |
+            |  [ Button: btnSintesis ]           |
+            |  [ Button: btnMenuPrincipal ]      |
+            +------------------------------------+
+        CODIGO COMPLETO:
+package com.simulafin
+
+import android.content.Intent
+import android.os.Bundle
+import android.widget.Button
+import androidx.appcompat.app.AppCompatActivity
+
+class MenuSimActivity : AppCompatActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_menu_sim)
+
+        val btnPasoApaso = findViewById<Button>(R.id.btnPasoApaso)
+        val btnSintesis = findViewById<Button>(R.id.btnSintesis)
+        val btnMenuPrincipal = findViewById<Button>(R.id.btnMenuPrincipal)
+
+        btnPasoApaso.setOnClickListener {
+            val intent = Intent(this, InputSimCuentaActivity::class.java)
+            startActivity(intent)
+        }
+
+        btnSintesis.setOnClickListener {
+            val intent = Intent(this, SimulacionActivity::class.java)
+            startActivity(intent)
+        }
+
+        btnMenuPrincipal.setOnClickListener {
+            val intent = Intent(this, MainActivity::class.java)
+            startActivity(intent)
+        }
+    }
+}
+
+
+    ARCHIVO: InputSimCuentaActivity.kt
+        DETALLE: Paso 1 de simulación por etapas.
+        DESCRIPCION: Formulario para elegir la cuenta y el monto inicial de simulación.
+        RELACIONES: Navega a InputSimItemsActivity al presionar btnOkCuenta.
+        PANTALLA:
+            +------------------------------------+
+            |    Datos de Simulación y Cuenta    |
+            |                                    |
+            |  [ Button: btnOkCuenta ]           |
+            +------------------------------------+
+        CODIGO COMPLETO:
+package com.simulafin
+
+import android.content.Intent
+import android.os.Bundle
+import android.widget.Button
+import androidx.appcompat.app.AppCompatActivity
+
+class InputSimCuentaActivity : AppCompatActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_input_sim_cuenta)
+
+        val btnOkCuenta = findViewById<Button>(R.id.btnOkCuenta)
+        btnOkCuenta.setOnClickListener {
+            val intent = Intent(this, InputSimItemsActivity::class.java)
+            startActivity(intent)
+        }
+    }
+}
+
+
+    ARCHIVO: InputSimItemsActivity.kt
+        DETALLE: Paso 2 de simulación por etapas.
+        DESCRIPCION: Selección y ajuste de los ítems de egreso para el escenario.
+        RELACIONES: Navega a OutSimResumenActivity al presionar btnOkItems.
+        PANTALLA:
+            +------------------------------------+
+            |         Selección de Ítems         |
+            |                                    |
+            |  [ Button: btnOkItems ]            |
+            +------------------------------------+
+        CODIGO COMPLETO:
+package com.simulafin
+
+import android.content.Intent
+import android.os.Bundle
+import android.widget.Button
+import androidx.appcompat.app.AppCompatActivity
+
+class InputSimItemsActivity : AppCompatActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_input_sim_items)
+
+        val btnOkItems = findViewById<Button>(R.id.btnOkItems)
+        btnOkItems.setOnClickListener {
+            val intent = Intent(this, OutSimResumenActivity::class.java)
+            startActivity(intent)
+        }
+    }
+}
+
+
+    ARCHIVO: OutSimResumenActivity.kt
+        DETALLE: Paso 3 de simulación (Resumen final).
+        DESCRIPCION: Presenta los resultados de la proyección con botones de retorno a fases previas.
+        RELACIONES: Llama a InputSimItemsActivity (btnItems), InputSimCuentaActivity (btnSim) y MenuSimActivity (btnMenu).
+        PANTALLA:
+            +------------------------------------+
+            |       Resumen de Simulación        |
+            |                                    |
+            |  [ TextView: tvExplicacionResumen ]|
+            |  [ Button: btnItems ]              |
+            |  [ Button: btnSim ]                |
+            |  [ Button: btnMenu ]               |
+            +------------------------------------+
+        CODIGO COMPLETO:
+package com.simulafin
+
+import android.content.Intent
+import android.os.Bundle
+import android.widget.Button
+import androidx.appcompat.app.AppCompatActivity
+
+class OutSimResumenActivity : AppCompatActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_out_sim_resumen)
+
+        val btnItems = findViewById<Button>(R.id.btnItems)
+        val btnSim = findViewById<Button>(R.id.btnSim)
+        val btnMenu = findViewById<Button>(R.id.btnMenu)
+
+        btnItems.setOnClickListener {
+            val intent = Intent(this, InputSimItemsActivity::class.java)
+            startActivity(intent)
+        }
+
+        btnSim.setOnClickListener {
+            val intent = Intent(this, InputSimCuentaActivity::class.java)
+            startActivity(intent)
+        }
+
+        btnMenu.setOnClickListener {
+            val intent = Intent(this, MenuSimActivity::class.java)
+            startActivity(intent)
+        }
+    }
+}
+
+
+    ARCHIVO: RegistroActivity.kt
+        DETALLE: Formulario de registro.
+        DESCRIPCION: Permite crear un nuevo usuario e incluye acceso a funciones de respaldo.
+        RELACIONES: Conecta con RespaldoActivity mediante btnResapaldar y btnRecuperar.
+        PANTALLA:
+            +------------------------------------+
+            |              Registro              |
+            |                                    |
+            |  [ Button: btnResapaldar ]         |
+            |  [ Button: btnRecuperar ]          |
+            +------------------------------------+
+        CODIGO COMPLETO:
+package com.simulafin
+
+import android.content.Intent
+import android.os.Bundle
+import android.widget.Button
+import androidx.appcompat.app.AppCompatActivity
+
+class RegistroActivity : AppCompatActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_registro)
+
+        val btnResapaldar = findViewById<Button>(R.id.btnResapaldar)
+        val btnRecuperar = findViewById<Button>(R.id.btnRecuperar)
+
+        btnResapaldar.setOnClickListener {
+            val intent = Intent(this, RespaldoActivity::class.java)
+            startActivity(intent)
+        }
+
+        btnRecuperar.setOnClickListener {
+            val intent = Intent(this, RespaldoActivity::class.java)
+            startActivity(intent)
+        }
+    }
+}
+
+
+    ARCHIVO: Usuario.kt
+        DETALLE: Modelo de datos Usuario.
+        DESCRIPCION: Clase de datos mapeada en la tabla SQLite 'Usuario' (idUsuario, nombreUsuario, claveUsuario).
+        CODIGO COMPLETO:
+package com.simulafin.clases
+
+data class Usuario(
+    val idUsuario: Int = 0,
+    val nombreUsuario: String = "",
+    val claveUsuario: String = ""
+)
+
+
+    ARCHIVO: Cuenta.kt
+        DETALLE: Modelo de datos Cuenta.
+        DESCRIPCION: Clase de datos mapeada en la tabla SQLite 'Cuenta' (idCuenta, idUsuario, nombreCuenta, totalCuenta).
+        CODIGO COMPLETO:
+package com.simulafin.clases
+
+data class Cuenta(
+    val idCuenta: Int = 0,
+    val idUsuario: Int = 0,
+    val nombreCuenta: String = "",
+    val totalCuenta: Int = 0
+)
+
+
+    ARCHIVO: Item.kt
+        DETALLE: Modelo de datos Ítem.
+        DESCRIPCION: Clase de datos mapeada en la tabla SQLite 'Item' (idItem, idUsuario, nombreItem, valorItem).
+        CODIGO COMPLETO:
+package com.simulafin.clases
+
+data class Item(
+    val idItem: Int = 0,
+    val idUsuario: Int = 0,
+    val nombreItem: String = "",
+    val valorItem: Int = 0
+)
+
+
+    ARCHIVO: Simulacion.kt
+        DETALLE: Modelo cabecera de simulación.
+        DESCRIPCION: Clase de datos mapeada en la tabla SQLite 'Simulacion' (idSim, idCuenta, nombreSim, fechaHoraSim, totalDisponible, totalEgresos, meses, excedente).
+        CODIGO COMPLETO:
+package com.simulafin.clases
+
+data class Simulacion(
+    val idSim: Int = 0,
+    val idCuenta: Int = 0,
+    val nombreSim: String = "",
+    val fechaHoraSim: String = "",
+    val totalDisponible: Int = 0,
+    val totalEgresos: Int = 0,
+    val meses: Int = 0,
+    val excedente: Int = 0
+)
+
+
+    ARCHIVO: DetalleSimulacion.kt
+        DETALLE: Modelo renglón de simulación.
+        DESCRIPCION: Clase de datos mapeada en la tabla SQLite 'DetalleSimulacion' (idDetalle, idSim, idItem, nombreItem, valorItem).
+        CODIGO COMPLETO:
+package com.simulafin.clases
+
+data class DetalleSimulacion(
+    val idDetalle: Int = 0,
+    val idSim: Int = 0,
+    val idItem: Int? = null,
+    val nombreItem: String = "",
+    val valorItem: Int = 0
+)
+
+
+    ARCHIVO: BaseDatosHelper.kt
+        DETALLE: Administrador del esquema SQLite.
+        DESCRIPCION: Contiene el método generaBaseDatos() y crea las 5 tablas SQLite con sus llaves primarias y foráneas.
+        CODIGO COMPLETO:
+package com.simulafin.clases
+
+import android.content.Context
+import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteOpenHelper
+import java.io.File
+
+class BaseDatosHelper(private val context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
+
+    // VERIFICA LA EXISTENCIA Y CREA LA BASE DE DATOS SI NO EXISTE
+    fun generaBaseDatos(): Boolean {
+        val dbFile: File = context.getDatabasePath(DATABASE_NAME)
+        return if (!dbFile.exists()) {
+            val db = this.writableDatabase
+            db.close()
+            true
+        } else {
+            false
+        }
+    }
+
+    override fun onCreate(db: SQLiteDatabase?) {
+        db?.execSQL(
+            """
+            CREATE TABLE Usuario (
+                idUsuario INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombreUsuario TEXT NOT NULL,
+                claveUsuario TEXT NOT NULL
+            )
+            """.trimIndent()
+        )
+
+        db?.execSQL(
+            """
+            CREATE TABLE Cuenta (
+                idCuenta INTEGER PRIMARY KEY AUTOINCREMENT,
+                idUsuario INTEGER NOT NULL,
+                nombreCuenta TEXT NOT NULL,
+                totalCuenta INTEGER NOT NULL,
+                FOREIGN KEY (idUsuario) REFERENCES Usuario(idUsuario) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+
+        db?.execSQL(
+            """
+            CREATE TABLE Item (
+                idItem INTEGER PRIMARY KEY AUTOINCREMENT,
+                idUsuario INTEGER NOT NULL,
+                nombreItem TEXT NOT NULL,
+                valorItem INTEGER NOT NULL,
+                FOREIGN KEY (idUsuario) REFERENCES Usuario(idUsuario) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+
+        db?.execSQL(
+            """
+            CREATE TABLE Simulacion (
+                idSim INTEGER PRIMARY KEY AUTOINCREMENT,
+                idCuenta INTEGER NOT NULL,
+                nombreSim TEXT NOT NULL,
+                fechaHoraSim TEXT NOT NULL,
+                totalDisponible INTEGER NOT NULL,
+                totalEgresos INTEGER NOT NULL,
+                meses INTEGER NOT NULL,
+                excedente INTEGER NOT NULL,
+                FOREIGN KEY (idCuenta) REFERENCES Cuenta(idCuenta) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+
+        db?.execSQL(
+            """
+            CREATE TABLE DetalleSimulacion (
+                idDetalle INTEGER PRIMARY KEY AUTOINCREMENT,
+                idSim INTEGER NOT NULL,
+                idItem INTEGER,
+                nombreItem TEXT NOT NULL,
+                valorItem INTEGER NOT NULL,
+                FOREIGN KEY (idSim) REFERENCES Simulacion(idSim) ON DELETE CASCADE,
+                FOREIGN KEY (idItem) REFERENCES Item(idItem) ON DELETE SET NULL
+            )
+            """.trimIndent()
+        )
+    }
+
+    override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
+        db?.execSQL("DROP TABLE IF EXISTS DetalleSimulacion")
+        db?.execSQL("DROP TABLE IF EXISTS Simulacion")
+        db?.execSQL("DROP TABLE IF EXISTS Item")
+        db?.execSQL("DROP TABLE IF EXISTS Cuenta")
+        db?.execSQL("DROP TABLE IF EXISTS Usuario")
+        onCreate(db)
+    }
+
+    companion object {
+        const val DATABASE_NAME = "simulafin.db"
+        private const val DATABASE_VERSION = 1
+    }
+}
+
+
+    ARCHIVO: AndroidManifest.xml
+        DETALLE: Registro oficial de la app.
+        DESCRIPCION: Declara el paquete base com.simulafin y registra LoginActivity como LAUNCHER.
+        CODIGO COMPLETO:
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.simulafin">
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.SimulaFin">
+
+        <!-- PANTALLA INICIAL DE INICIO DE SESION -->
+        <activity
+            android:name=".LoginActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".MenuSimActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".RegistroActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".CuentasActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ItemsActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".SimulacionActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".InputSimCuentaActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".InputSimItemsActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".OutSimResumenActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ConsultaSimulacionesActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".RespaldoActivity"
+            android:exported="false" />
+
+    </application>
+
+</manifest>
+
+
+LAYOUTS XML DE INTERFAZ DE USUARIO:
+
+    LAYOUT: activity_main.xml
+        DETALLE: UI del menú principal.
+        CODIGO COMPLETO:
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="24dp"
+    tools:context=".MainActivity">
+
+    <TextView
+        android:id="@+id/tvTituloMain"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="SimulaFin - Menú Principal"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="32dp" />
+
+    <Button
+        android:id="@+id/btnSimulaciones"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:text="Simulaciones" />
+
+    <Button
+        android:id="@+id/btnCuentas"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:text="Cuentas" />
+
+    <Button
+        android:id="@+id/btnItems"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:text="Ítems de Egreso" />
+
+    <Button
+        android:id="@+id/btnRegistro"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:text="Registro" />
+
+    <Button
+        android:id="@+id/btnRespaldo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Respaldo de BD" />
+
+</LinearLayout>
+
+
+    LAYOUT: activity_menu_sim.xml
+        DETALLE: UI del submenú de simulaciones.
+        CODIGO COMPLETO:
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="24dp"
+    tools:context=".MenuSimActivity">
+
+    <TextView
+        android:id="@+id/tvTituloMenuSim"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Menú de Simulación"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="32dp" />
+
+    <Button
+        android:id="@+id/btnPasoApaso"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:text="Simulación Paso a Paso" />
+
+    <Button
+        android:id="@+id/btnSintesis"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:text="Síntesis de Simulación" />
+
+    <Button
+        android:id="@+id/btnMenuPrincipal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Volver a Menú Inicio" />
+
+</LinearLayout>
+
+
+    LAYOUT: activity_out_sim_resumen.xml
+        DETALLE: UI del paso 3 de simulación.
+        CODIGO COMPLETO:
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="24dp"
+    tools:context=".OutSimResumenActivity">
+
+    <TextView
+        android:id="@+id/tvTituloOutSimResumen"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Resumen de Simulación"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/tvExplicacionResumen"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Aqui se presentara el resumen completo de la simulación presentando el nombre de la simulacion la cuenta asociada..todos los montos y el resultado de los meses y excedente..."
+        android:textSize="16sp"
+        android:gravity="center"
+        android:layout_marginBottom="32dp" />
+
+    <Button
+        android:id="@+id/btnItems"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:text="Volver a Ítems" />
+
+    <Button
+        android:id="@+id/btnSim"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:text="Volver a Simulación Cuenta" />
+
+    <Button
+        android:id="@+id/btnMenu"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Volver a Menú" />
+
+</LinearLayout>
+
+
+ARCHIVOS ACCESORIOS Y RECICLAJE:
+
+    ARCHIVOS IMPRESCINDIBLES DEL SISTEMA:
+        - app/build.gradle.kts: Configuración de compilación, namespace com.simulafin, compileSdk 37, JavaVersion.VERSION_21. (IMPRESCINDIBLE)
+        - build.gradle.kts: Configuración raíz de plugins de Gradle. (IMPRESCINDIBLE)
+        - settings.gradle.kts: Declaración de módulos e inclusión del proyecto :app. (IMPRESCINDIBLE)
+        - gradle/libs.versions.toml: Catálogo de versiones centralizado de dependencias Android. (IMPRESCINDIBLE)
+        - gradle/wrapper/gradle-wrapper.properties: Configuración de versión del motor Gradle. (IMPRESCINDIBLE)
+        - res/values/strings.xml: Tabla de textos traducibles de la aplicación. (IMPRESCINDIBLE)
+        - res/values/colors.xml: Paleta de colores de la interfaz. (IMPRESCINDIBLE)
+        - res/values/themes.xml: Definición del tema Material/AppCompat. (IMPRESCINDIBLE)
+
+    ARCHIVOS RECICLAJE SECUNDARIOS:
+        - documentacion/*: Archivos de guiones, diagramas y referencias fuera del binario ejecutable. (RECICLABLE)
+        - .idea/*: Archivos de configuración interna de Android Studio IDE. (RECICLABLE)
+        - .gitignore: Filtro de archivos a ignorar en control de versiones Git. (RECICLABLE)
+        - gradlew / gradlew.bat: Scripts ejecutables de consola para build headless. (RECICLABLE)
